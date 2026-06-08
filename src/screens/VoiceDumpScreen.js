@@ -122,7 +122,17 @@ export default function VoiceDumpScreen({ visible, onClose, textMode = false }) 
     await handleProcess(null, textInput.trim())
   }
 
+  // Only allow closing when it's safe (not mid-recording or processing)
+  const isSafeToClose = state !== S.RECORDING && state !== S.PROCESSING && state !== S.STARTING
+
   const handleClose = () => {
+    if (!isSafeToClose) return
+    clearInterval(timerRef.current)
+    if (recorder.isRecording) recorder.stop().catch(() => {})
+    onClose()
+  }
+
+  const forceClose = () => {
     clearInterval(timerRef.current)
     if (recorder.isRecording) recorder.stop().catch(() => {})
     onClose()
@@ -147,11 +157,15 @@ export default function VoiceDumpScreen({ visible, onClose, textMode = false }) 
       transparent
       animationType="slide"
       statusBarTranslucent
-      onRequestClose={handleClose}>
+      onRequestClose={forceClose}>
 
       <View style={s.backdrop}>
-        {/* Dim area — tap to dismiss */}
-        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={handleClose} />
+        {/* Dim area — only dismiss when safe (not recording/processing) */}
+        <TouchableOpacity
+          style={StyleSheet.absoluteFill}
+          activeOpacity={1}
+          onPress={isSafeToClose ? handleClose : undefined}
+        />
 
         {/* Sheet */}
         <View style={s.sheet}>
@@ -164,7 +178,7 @@ export default function VoiceDumpScreen({ visible, onClose, textMode = false }) 
                state === S.PROCESSING ? 'Processing'      :
                state === S.DONE       ? 'Done'            : 'Type a task'}
             </Text>
-            <TouchableOpacity onPress={handleClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <TouchableOpacity onPress={forceClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <X size={18} color={colors.muted} />
             </TouchableOpacity>
           </View>

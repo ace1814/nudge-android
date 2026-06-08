@@ -1,3 +1,4 @@
+import * as FileSystem from 'expo-file-system'
 import { storage } from './storage'
 
 async function getOpenAIKey() {
@@ -8,19 +9,29 @@ async function getOpenAIKey() {
 
 export async function transcribeAudio(fileUri) {
   const key = await getOpenAIKey()
-  const form = new FormData()
-  form.append('file', { uri: fileUri, name: 'audio.m4a', type: 'audio/m4a' })
-  form.append('model', 'whisper-1')
-  form.append('language', 'en')
-  form.append('response_format', 'text')
 
-  const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${key}` },
-    body: form
-  })
-  if (!res.ok) throw new Error(`Whisper error: ${await res.text()}`)
-  return res.text()
+  // Use FileSystem.uploadAsync — React Native's fetch/FormData has a known bug
+  // with file URIs on Android (RN 0.73+): "unsupported format data part implementation"
+  const res = await FileSystem.uploadAsync(
+    'https://api.openai.com/v1/audio/transcriptions',
+    fileUri,
+    {
+      httpMethod: 'POST',
+      uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+      fieldName: 'file',
+      mimeType: 'audio/m4a',
+      parameters: {
+        model: 'whisper-1',
+        language: 'en',
+        response_format: 'text',
+      },
+      headers: {
+        Authorization: `Bearer ${key}`,
+      },
+    }
+  )
+  if (res.status !== 200) throw new Error(`Whisper error: ${res.body}`)
+  return res.body
 }
 
 const SYSTEM_PROMPT = `You are Nudge's intent parser. Extract actionable items from a casual voice dump.
