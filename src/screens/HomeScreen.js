@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native'
-import { Microphone, Check } from 'phosphor-react-native'
+import { Microphone, Check, PencilSimple } from 'phosphor-react-native'
 import dayjs from 'dayjs'
 import { colors, font } from '../theme'
 import { getTodayEntry, getTodayNudges, getActiveHabits, completeNudge, snoozeNudge, deleteNudge } from '../services/supabase'
@@ -57,6 +57,20 @@ export default function HomeScreen({ navigation }) {
         )}
       </View>
 
+      {/* Quick entry row */}
+      <View style={s.quickRow}>
+        <TouchableOpacity style={[s.quickBtn, s.quickBtnPrimary]}
+          onPress={() => navigation.navigate('VoiceDump')}>
+          <Microphone size={15} color="#fff" weight="fill" />
+          <Text style={s.quickBtnTextPrimary}>Voice</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[s.quickBtn, s.quickBtnSecondary]}
+          onPress={() => navigation.navigate('VoiceDump', { textMode: true })}>
+          <PencilSimple size={15} color={colors.foreground} />
+          <Text style={s.quickBtnTextSecondary}>Type a task</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Habits */}
       {habits.length > 0 && (
         <Section title="Habits">
@@ -99,8 +113,7 @@ export default function HomeScreen({ navigation }) {
 
       {nudges.length === 0 && habits.length === 0 && (
         <View style={s.empty}>
-          <Microphone size={28} color={colors.muted} />
-          <Text style={s.emptyText}>Nothing scheduled yet.{'\n'}Tap the mic button below to add tasks.</Text>
+          <Text style={s.emptyText}>Nothing scheduled yet.{'\n'}Tap Voice or Type to add tasks.</Text>
         </View>
       )}
 
@@ -127,19 +140,25 @@ function Stat({ label, value, color }) {
 }
 
 const s = StyleSheet.create({
-  root:        { flex: 1, backgroundColor: colors.bg },
-  content:     { padding: 16, paddingBottom: 40 },
-  header:      { marginBottom: 16 },
-  date:        { fontSize: font.xs, color: colors.muted, fontWeight: '600', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 },
-  greeting:    { fontSize: font.xl, fontWeight: '700', color: colors.foreground },
-  stats:       { flexDirection: 'row', marginTop: 10 },
-  habitRow:    { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, marginBottom: 6 },
-  habitDone:   { opacity: 0.5 },
-  habitCheck:  { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: colors.muted, alignItems: 'center', justifyContent: 'center' },
-  habitCheckDone: { borderColor: colors.done, backgroundColor: colors.done },
-  habitName:   { fontSize: font.sm, fontWeight: '600', color: colors.foreground },
-  habitNameDone: { textDecorationLine: 'line-through', color: colors.muted },
-  habitFreq:   { fontSize: font.xs, color: colors.muted, textTransform: 'capitalize', marginTop: 1 },
-  empty:       { alignItems: 'center', justifyContent: 'center', paddingTop: 40, gap: 8 },
-  emptyText:   { fontSize: font.sm, color: colors.muted, textAlign: 'center' },
+  root:               { flex: 1, backgroundColor: colors.bg },
+  content:            { padding: 16, paddingBottom: 40 },
+  header:             { marginBottom: 12 },
+  date:               { fontSize: font.xs, color: colors.muted, fontWeight: '600', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 },
+  greeting:           { fontSize: font.xl, fontWeight: '700', color: colors.foreground },
+  stats:              { flexDirection: 'row', marginTop: 10 },
+  quickRow:           { flexDirection: 'row', gap: 8, marginBottom: 4 },
+  quickBtn:           { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 12, paddingVertical: 11 },
+  quickBtnPrimary:    { backgroundColor: colors.primary },
+  quickBtnSecondary:  { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
+  quickBtnTextPrimary:{ fontSize: font.sm, fontWeight: '600', color: '#fff' },
+  quickBtnTextSecondary: { fontSize: font.sm, fontWeight: '600', color: colors.foreground },
+  habitRow:           { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, marginBottom: 6 },
+  habitDone:          { opacity: 0.5 },
+  habitCheck:         { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: colors.muted, alignItems: 'center', justifyContent: 'center' },
+  habitCheckDone:     { borderColor: colors.done, backgroundColor: colors.done },
+  habitName:          { fontSize: font.sm, fontWeight: '600', color: colors.foreground },
+  habitNameDone:      { textDecorationLine: 'line-through', color: colors.muted },
+  habitFreq:          { fontSize: font.xs, color: colors.muted, textTransform: 'capitalize', marginTop: 1 },
+  empty:              { alignItems: 'center', justifyContent: 'center', paddingTop: 40, gap: 8 },
+  emptyText:          { fontSize: font.sm, color: colors.muted, textAlign: 'center' },
 })

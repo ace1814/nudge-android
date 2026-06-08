@@ -83,11 +83,12 @@ function Tabs({ navigation }) {
   )
 }
 
-// Deep-link config — nudge://voice opens VoiceDump directly (recording auto-starts)
-// Samsung Side Key: Settings > Advanced features > Side key > Press OR Double press > Open app > Nudge
+// Deep-link config
+// nudge://voice  → VoiceDump (recording auto-starts)
+// Samsung Side Key: Settings > Advanced features > Side key > Press > Open app > Nudge
 const linking = {
   prefixes: ['nudge://'],
-  config: { screens: { Main: '', VoiceDump: 'voice' } }
+  config: { screens: { Main: '', VoiceDump: 'voice' } },
 }
 
 export default function App() {
@@ -103,7 +104,7 @@ export default function App() {
         <Stack.Navigator screenOptions={{ headerShown: false, cardStyle: { backgroundColor: colors.bg } }}>
           <Stack.Screen name="Main" component={Tabs} />
           <Stack.Screen name="VoiceDump" component={VoiceDumpScreen}
-            options={{ presentation: 'modal' }} />
+            options={{ presentation: 'transparentModal', cardStyle: { backgroundColor: 'transparent' } }} />
         </Stack.Navigator>
       </NavigationContainer>
     </GestureHandlerRootView>
