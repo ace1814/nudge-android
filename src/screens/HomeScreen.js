@@ -5,8 +5,10 @@ import dayjs from 'dayjs'
 import { colors, font } from '../theme'
 import { getTodayEntry, getTodayNudges, getActiveHabits, completeNudge, snoozeNudge, deleteNudge } from '../services/supabase'
 import NudgeCard from '../components/NudgeCard'
+import { useRecorder } from '../hooks/useRecorder'
 
-export default function HomeScreen({ navigation }) {
+export default function HomeScreen() {
+  const { openVoice, openText } = useRecorder()
   const [entry, setEntry]     = useState(null)
   const [nudges, setNudges]   = useState([])
   const [habits, setHabits]   = useState([])
@@ -59,13 +61,11 @@ export default function HomeScreen({ navigation }) {
 
       {/* Quick entry row */}
       <View style={s.quickRow}>
-        <TouchableOpacity style={[s.quickBtn, s.quickBtnPrimary]}
-          onPress={() => navigation.navigate('VoiceDump')}>
+        <TouchableOpacity style={[s.quickBtn, s.quickBtnPrimary]} onPress={openVoice}>
           <Microphone size={15} color="#fff" weight="fill" />
           <Text style={s.quickBtnTextPrimary}>Voice</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[s.quickBtn, s.quickBtnSecondary]}
-          onPress={() => navigation.navigate('VoiceDump', { textMode: true })}>
+        <TouchableOpacity style={[s.quickBtn, s.quickBtnSecondary]} onPress={openText}>
           <PencilSimple size={15} color={colors.foreground} />
           <Text style={s.quickBtnTextSecondary}>Type a task</Text>
         </TouchableOpacity>
