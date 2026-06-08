@@ -57,19 +57,6 @@ export default function HomeScreen({ navigation }) {
         )}
       </View>
 
-      {/* Voice dump prompt or summary */}
-      {entry?.parsed_summary ? (
-        <Text style={s.summary}>{entry.parsed_summary}</Text>
-      ) : (
-        <TouchableOpacity style={s.voicePrompt} onPress={() => navigation.navigate('VoiceDump')}>
-          <View style={s.voiceIcon}><Feather name="mic" size={18} color={colors.primary} /></View>
-          <View>
-            <Text style={s.voiceTitle}>What's the plan today?</Text>
-            <Text style={s.voiceSub}>Tap to voice dump</Text>
-          </View>
-        </TouchableOpacity>
-      )}
-
       {/* Habits */}
       {habits.length > 0 && (
         <Section title="Habits">
@@ -110,10 +97,10 @@ export default function HomeScreen({ navigation }) {
         </Section>
       )}
 
-      {nudges.length === 0 && entry && (
+      {nudges.length === 0 && habits.length === 0 && (
         <View style={s.empty}>
-          <Feather name="trending-up" size={28} color={colors.muted} />
-          <Text style={s.emptyText}>All clear. Nudges appear as the day goes on.</Text>
+          <Feather name="mic" size={28} color={colors.muted} />
+          <Text style={s.emptyText}>Nothing scheduled yet.{'\n'}Tap the mic button below to add tasks.</Text>
         </View>
       )}
 
@@ -146,11 +133,6 @@ const s = StyleSheet.create({
   date:        { fontSize: font.xs, color: colors.muted, fontWeight: '600', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 },
   greeting:    { fontSize: font.xl, fontWeight: '700', color: colors.foreground },
   stats:       { flexDirection: 'row', marginTop: 10 },
-  summary:     { fontSize: font.sm, color: colors.muted, lineHeight: 20, marginBottom: 4 },
-  voicePrompt: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.border, borderRadius: 14, padding: 14, marginTop: 4 },
-  voiceIcon:   { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.primaryDim, alignItems: 'center', justifyContent: 'center' },
-  voiceTitle:  { fontSize: font.sm, fontWeight: '600', color: colors.foreground },
-  voiceSub:    { fontSize: font.xs, color: colors.muted, marginTop: 2 },
   habitRow:    { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, marginBottom: 6 },
   habitDone:   { opacity: 0.5 },
   habitCheck:  { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: colors.muted, alignItems: 'center', justifyContent: 'center' },

@@ -1,5 +1,5 @@
 import React from 'react'
-import { StatusBar, TouchableOpacity } from 'react-native'
+import { StatusBar, TouchableOpacity, View, StyleSheet } from 'react-native'
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { createStackNavigator } from '@react-navigation/stack'
@@ -23,6 +23,21 @@ const navTheme = {
 
 const TAB_ICONS = { Today: 'home', Nudges: 'bell', Habits: 'repeat', Settings: 'settings' }
 
+function MicTabButton({ onPress }) {
+  return (
+    <TouchableOpacity onPress={onPress} style={tabStyles.micWrapper} activeOpacity={0.85}>
+      <View style={tabStyles.micBtn}>
+        <Feather name="mic" size={24} color="#fff" />
+      </View>
+    </TouchableOpacity>
+  )
+}
+
+const tabStyles = StyleSheet.create({
+  micWrapper: { top: -18, alignItems: 'center', justifyContent: 'center' },
+  micBtn:     { width: 60, height: 60, borderRadius: 30, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 8 },
+})
+
 function Tabs({ navigation }) {
   return (
     <Tab.Navigator
@@ -34,15 +49,16 @@ function Tabs({ navigation }) {
         tabBarIcon:            ({ color, size }) => <Feather name={TAB_ICONS[route.name]} size={size - 2} color={color} />,
         headerStyle:           { backgroundColor: colors.bg, shadowOpacity: 0, elevation: 0 },
         headerTintColor:       colors.foreground,
-        headerRight:           () => (
-          <TouchableOpacity onPress={() => navigation.navigate('VoiceDump')}
-            style={{ marginRight: 14, width: 34, height: 34, borderRadius: 17, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' }}>
-            <Feather name="mic" size={16} color="#fff" />
-          </TouchableOpacity>
-        ),
       })}>
       <Tab.Screen name="Today"    component={HomeScreen}    options={{ title: 'Today' }} />
       <Tab.Screen name="Nudges"   component={NudgesScreen}  options={{ headerShown: false }} />
+      <Tab.Screen name="Mic"      component={HomeScreen}
+        options={{
+          tabBarLabel: () => null,
+          tabBarIcon:  () => null,
+          tabBarButton: (props) => <MicTabButton onPress={() => navigation.navigate('VoiceDump')} />,
+          headerShown: false,
+        }} />
       <Tab.Screen name="Habits"   component={HabitsScreen}  options={{ headerShown: false }} />
       <Tab.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
     </Tab.Navigator>

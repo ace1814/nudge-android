@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { View, Text, TouchableOpacity, TextInput, StyleSheet, ActivityIndicator, ScrollView, Alert } from 'react-native'
 import { Feather } from '@expo/vector-icons'
-import { Audio } from 'expo-av'
+import { useAudioRecorder, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync } from 'expo-audio'
 import { colors, font } from '../theme'
 import { processVoiceDump } from '../services/ai'
 
@@ -16,29 +16,29 @@ export default function VoiceDumpScreen({ navigation, route }) {
   const [result, setResult]     = useState(null)
   const [error, setError]       = useState('')
   const [elapsed, setElapsed]   = useState(0)
-  const recordingRef = useRef(null)
-  const timerRef     = useRef(null)
+  const recorder  = useAudioRecorder(RecordingPresets.HIGH_QUALITY)
+  const timerRef  = useRef(null)
 
   // If launched via Side Key shortcut, auto-start recording
   useEffect(() => {
     if (route?.params?.autoStart) startRecording()
   }, [])
 
-  useEffect(() => () => { stopRecording(); clearInterval(timerRef.current) }, [])
+  useEffect(() => () => {
+    clearInterval(timerRef.current)
+    if (recorder.isRecording) recorder.stop().catch(() => {})
+  }, [])
 
   const startRecording = async () => {
     try {
-      const { granted } = await Audio.requestPermissionsAsync()
+      const { granted } = await requestRecordingPermissionsAsync()
       if (!granted) {
         Alert.alert('Permission needed', 'Nudge needs microphone access to record.')
         setUseText(true); return
       }
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true })
-
-      const { recording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      )
-      recordingRef.current = recording
+      await setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true })
+      await recorder.prepareToRecordAsync()
+      recorder.record()
       setElapsed(0)
       timerRef.current = setInterval(() => setElapsed(s => s + 1), 1000)
       setState(S.RECORDING)
@@ -50,11 +50,10 @@ export default function VoiceDumpScreen({ navigation, route }) {
 
   const stopRecording = async () => {
     clearInterval(timerRef.current)
-    if (!recordingRef.current) return
+    if (!recorder.isRecording) return
     try {
-      await recordingRef.current.stopAndUnloadAsync()
-      const uri = recordingRef.current.getURI()
-      recordingRef.current = null
+      await recorder.stop()
+      const uri = recorder.uri
       setState(S.PROCESSING)
       await handleProcess(uri)
     } catch (e) {

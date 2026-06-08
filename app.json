@@ -31,7 +31,7 @@
     "plugins": [
       "expo-secure-store",
       [
-        "expo-av",
+        "expo-audio",
         { "microphonePermission": "Nudge needs the mic to record your voice dumps." }
       ],
       [
