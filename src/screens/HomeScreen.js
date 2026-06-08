@@ -5,6 +5,7 @@ import dayjs from 'dayjs'
 import { colors, font } from '../theme'
 import { getTodayEntry, getTodayNudges, getActiveHabits, completeNudge, snoozeNudge, deleteNudge } from '../services/supabase'
 import NudgeCard from '../components/NudgeCard'
+import EditNudgeSheet from '../components/EditNudgeSheet'
 import { useRecorder } from '../hooks/useRecorder'
 
 export default function HomeScreen() {
@@ -14,6 +15,7 @@ export default function HomeScreen() {
   const [habits, setHabits]   = useState([])
   const [doneHabits, setDoneHabits] = useState(new Set())
   const [refreshing, setRefreshing] = useState(false)
+  const [editingNudge, setEditingNudge] = useState(null)
 
   const load = useCallback(async () => {
     try {
@@ -96,7 +98,8 @@ export default function HomeScreen() {
             <NudgeCard key={n.id} nudge={n}
               onComplete={async () => { await completeNudge(n.id); load() }}
               onSnooze={async () => { await snoozeNudge(n.id, 60); load() }}
-              onDelete={async () => { await deleteNudge(n.id); load() }} />
+              onDelete={async () => { await deleteNudge(n.id); load() }}
+              onEdit={() => setEditingNudge(n)} />
           ))}
         </Section>
       )}
@@ -117,6 +120,12 @@ export default function HomeScreen() {
         </View>
       )}
 
+      <EditNudgeSheet
+        nudge={editingNudge}
+        visible={!!editingNudge}
+        onClose={() => setEditingNudge(null)}
+        onSaved={load}
+      />
     </ScrollView>
   )
 }

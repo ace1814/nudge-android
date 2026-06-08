@@ -1,13 +1,13 @@
 import React, { useState } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native'
-import { CaretUp, CaretDown, Check, Clock, X, Trash } from 'phosphor-react-native'
+import { CaretUp, CaretDown, Check, Clock, X, Trash, PencilSimple } from 'phosphor-react-native'
 import dayjs from 'dayjs'
 import { colors, font } from '../theme'
 
 const CAT_COLORS = { health: colors.health, work: colors.work, content: colors.content, personal: colors.personal, finance: colors.finance, other: colors.other }
 const STATUS_COLORS = { pending: colors.pending, fired: colors.pending, done: colors.done, missed: colors.missed, snoozed: colors.snoozed }
 
-export default function NudgeCard({ nudge, onComplete, onSnooze, onDismiss, onDelete }) {
+export default function NudgeCard({ nudge, onComplete, onSnooze, onDismiss, onDelete, onEdit }) {
   const [expanded, setExpanded] = useState(false)
   const isDone   = nudge.status === 'done'
   const isMissed = nudge.status === 'missed'
@@ -56,8 +56,13 @@ export default function NudgeCard({ nudge, onComplete, onSnooze, onDismiss, onDe
                 <Text style={[s.actionBtnText, { color: colors.muted }]}>Dismiss</Text>
               </TouchableOpacity>
             )}
+            {onEdit && (
+              <TouchableOpacity style={[s.actionBtn, { marginLeft: 'auto' }]} onPress={onEdit}>
+                <PencilSimple size={13} color={colors.primary} />
+              </TouchableOpacity>
+            )}
             {onDelete && (
-              <TouchableOpacity style={[s.actionBtn, { marginLeft: 'auto' }]} onPress={onDelete}>
+              <TouchableOpacity style={s.actionBtn} onPress={onDelete}>
                 <Trash size={13} color={colors.missed} />
               </TouchableOpacity>
             )}

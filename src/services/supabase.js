@@ -67,6 +67,16 @@ export async function updateNudgeStatus(id, status, extra = {}) {
   if (error) throw error
 }
 
+export async function updateNudge(id, fields) {
+  const db = await getSupabase()
+  if (!db) throw new Error('Supabase not configured')
+  const allowed = ['title', 'nudge_copy', 'category', 'scheduled_for', 'recurrence',
+                   'recurrence_window_start', 'recurrence_window_end']
+  const update = Object.fromEntries(Object.entries(fields).filter(([k]) => allowed.includes(k)))
+  const { error } = await db.from('nudges').update(update).eq('id', id)
+  if (error) throw error
+}
+
 export async function deleteNudge(id) {
   const db = await getSupabase()
   if (!db) throw new Error('Supabase not configured')
