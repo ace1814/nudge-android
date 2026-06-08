@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, Switch, Alert } from 'react-native'
-import { Feather } from '@expo/vector-icons'
+import { Plus, X, Trash } from 'phosphor-react-native'
 import { colors, font } from '../theme'
 import { getActiveHabits, upsertHabit, deleteHabit } from '../services/supabase'
 
@@ -42,7 +42,7 @@ export default function HabitsScreen() {
           <Text style={s.sub}>Always on, no re-entry needed</Text>
         </View>
         <TouchableOpacity style={s.addBtn} onPress={() => setAdding(!adding)}>
-          <Feather name={adding ? 'x' : 'plus'} size={18} color="#fff" />
+          {adding ? <X size={18} color="#fff" /> : <Plus size={18} color="#fff" />}
         </TouchableOpacity>
       </View>
 
@@ -109,7 +109,7 @@ export default function HabitsScreen() {
               thumbColor="#fff"
             />
             <TouchableOpacity onPress={() => confirmDelete(h.id, h.name)} style={s.deleteBtn}>
-              <Feather name="trash-2" size={16} color={colors.missed} />
+              <Trash size={16} color={colors.missed} />
             </TouchableOpacity>
           </View>
         ))}

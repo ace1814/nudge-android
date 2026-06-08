@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native'
-import { Feather } from '@expo/vector-icons'
+import { Microphone, Check } from 'phosphor-react-native'
 import dayjs from 'dayjs'
 import { colors, font } from '../theme'
 import { getTodayEntry, getTodayNudges, getActiveHabits, completeNudge, snoozeNudge, deleteNudge } from '../services/supabase'
@@ -64,7 +64,7 @@ export default function HomeScreen({ navigation }) {
             <TouchableOpacity key={h.id} style={[s.habitRow, doneHabits.has(h.id) && s.habitDone]}
               onPress={() => toggleHabit(h.id)}>
               <View style={[s.habitCheck, doneHabits.has(h.id) && s.habitCheckDone]}>
-                {doneHabits.has(h.id) && <Feather name="check" size={11} color="#fff" />}
+                {doneHabits.has(h.id) && <Check size={11} color="#fff" weight="bold" />}
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[s.habitName, doneHabits.has(h.id) && s.habitNameDone]}>{h.name}</Text>
@@ -99,7 +99,7 @@ export default function HomeScreen({ navigation }) {
 
       {nudges.length === 0 && habits.length === 0 && (
         <View style={s.empty}>
-          <Feather name="mic" size={28} color={colors.muted} />
+          <Microphone size={28} color={colors.muted} />
           <Text style={s.emptyText}>Nothing scheduled yet.{'\n'}Tap the mic button below to add tasks.</Text>
         </View>
       )}

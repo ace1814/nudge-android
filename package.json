@@ -18,12 +18,14 @@
     "expo-status-bar": "~56.0.4",
     "expo-task-manager": "~56.0.17",
     "openai": "^6.42.0",
+    "phosphor-react-native": "^3.0.6",
     "react": "19.2.3",
     "react-native": "0.85.3",
     "react-native-gesture-handler": "~2.31.1",
     "react-native-reanimated": "4.3.1",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "4.25.2",
+    "react-native-svg": "15.15.4",
     "react-native-vector-icons": "^10.3.0"
   },
   "scripts": {

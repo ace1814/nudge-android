@@ -19,12 +19,17 @@
         "android.permission.RECORD_AUDIO",
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE",
-        "android.permission.POST_NOTIFICATIONS"
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
       ],
       "intentFilters": [
         {
           "action": "com.arpitchandak.nudge.VOICE_DUMP",
-          "category": ["android.intent.category.DEFAULT"]
+          "category": [
+            "android.intent.category.DEFAULT"
+          ]
         }
       ]
     },
@@ -32,7 +37,9 @@
       "expo-secure-store",
       [
         "expo-audio",
-        { "microphonePermission": "Nudge needs the mic to record your voice dumps." }
+        {
+          "microphonePermission": "Nudge needs the mic to record your voice dumps."
+        }
       ],
       [
         "expo-notifications",
@@ -41,6 +48,11 @@
           "color": "#7c3aed"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "123e6aa1-7b5e-42e7-be16-b88e7224b541"
+      }
+    }
   }
 }

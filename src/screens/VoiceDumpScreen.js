@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { View, Text, TouchableOpacity, TextInput, StyleSheet, ActivityIndicator, ScrollView, Alert } from 'react-native'
-import { Feather } from '@expo/vector-icons'
+import { View, Text, TouchableOpacity, TextInput, StyleSheet, ActivityIndicator, ScrollView, Alert, Platform } from 'react-native'
 import { useAudioRecorder, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync } from 'expo-audio'
+import { Microphone, MicrophoneSlash, X, Check, CheckCircle } from 'phosphor-react-native'
 import { colors, font } from '../theme'
 import { processVoiceDump } from '../services/ai'
 
@@ -9,70 +9,81 @@ const S = { IDLE: 'idle', RECORDING: 'recording', PROCESSING: 'processing', DONE
 
 const CATEGORY_COLORS = { health: colors.health, work: colors.work, content: colors.content, personal: colors.personal, finance: colors.finance, other: colors.other }
 
-export default function VoiceDumpScreen({ navigation, route }) {
-  const [state, setState]       = useState(S.IDLE)
-  const [useText, setUseText]   = useState(false)
+export default function VoiceDumpScreen({ navigation }) {
+  const [state, setState]         = useState(S.IDLE)
+  const [useText, setUseText]     = useState(false)
   const [textInput, setTextInput] = useState('')
-  const [result, setResult]     = useState(null)
-  const [error, setError]       = useState('')
-  const [elapsed, setElapsed]   = useState(0)
-  const recorder  = useAudioRecorder(RecordingPresets.HIGH_QUALITY)
-  const timerRef  = useRef(null)
+  const [result, setResult]       = useState(null)
+  const [error, setError]         = useState('')
+  const [elapsed, setElapsed]     = useState(0)
+  const recorder   = useAudioRecorder(RecordingPresets.HIGH_QUALITY)
+  const timerRef   = useRef(null)
+  const mountedRef = useRef(true)
 
-  // If launched via Side Key shortcut, auto-start recording
+  // Auto-start recording as soon as the screen opens (from mic button or Side Key)
   useEffect(() => {
-    if (route?.params?.autoStart) startRecording()
+    startRecording()
+    return () => {
+      mountedRef.current = false
+      clearInterval(timerRef.current)
+      if (recorder.isRecording) recorder.stop().catch(() => {})
+    }
   }, [])
 
-  useEffect(() => () => {
-    clearInterval(timerRef.current)
-    if (recorder.isRecording) recorder.stop().catch(() => {})
-  }, [])
+  const safeSet = (fn) => { if (mountedRef.current) fn() }
 
   const startRecording = async () => {
     try {
       const { granted } = await requestRecordingPermissionsAsync()
       if (!granted) {
         Alert.alert('Permission needed', 'Nudge needs microphone access to record.')
-        setUseText(true); return
+        safeSet(() => setUseText(true))
+        return
       }
-      await setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true })
+      // setAudioModeAsync options are iOS-specific — skip on Android to avoid crash
+      if (Platform.OS === 'ios') {
+        await setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true })
+      }
       await recorder.prepareToRecordAsync()
       recorder.record()
-      setElapsed(0)
-      timerRef.current = setInterval(() => setElapsed(s => s + 1), 1000)
-      setState(S.RECORDING)
+      safeSet(() => {
+        setElapsed(0)
+        timerRef.current = setInterval(() => safeSet(() => setElapsed(s => s + 1)), 1000)
+        setState(S.RECORDING)
+      })
     } catch (e) {
-      setError('Could not start recording: ' + e.message)
-      setState(S.ERROR)
+      console.warn('[VoiceDump] startRecording error:', e)
+      safeSet(() => { setError('Could not start recording: ' + e.message); setState(S.ERROR) })
     }
   }
 
   const stopRecording = async () => {
     clearInterval(timerRef.current)
-    if (!recorder.isRecording) return
     try {
       await recorder.stop()
       const uri = recorder.uri
-      setState(S.PROCESSING)
+      if (!uri) throw new Error('No recording file produced.')
+      safeSet(() => setState(S.PROCESSING))
       await handleProcess(uri)
     } catch (e) {
-      setError(e.message); setState(S.ERROR)
+      console.warn('[VoiceDump] stopRecording error:', e)
+      safeSet(() => { setError(e.message); setState(S.ERROR) })
     }
   }
 
   const handleProcess = async (uri, text = null) => {
     try {
       const res = await processVoiceDump(uri, text)
-      setResult(res); setState(S.DONE)
+      safeSet(() => { setResult(res); setState(S.DONE) })
     } catch (e) {
-      setError(e.message || 'Something went wrong.'); setState(S.ERROR)
+      console.warn('[VoiceDump] handleProcess error:', e)
+      safeSet(() => { setError(e.message || 'Something went wrong.'); setState(S.ERROR) })
     }
   }
 
   const handleTextSubmit = async () => {
     if (!textInput.trim()) return
-    setState(S.PROCESSING)
+    safeSet(() => setState(S.PROCESSING))
     await handleProcess(null, textInput.trim())
   }
 
@@ -84,7 +95,7 @@ export default function VoiceDumpScreen({ navigation, route }) {
       <View style={s.header}>
         <Text style={s.title}>Voice Dump</Text>
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.closeBtn}>
-          <Feather name="x" size={20} color={colors.muted} />
+          <X size={20} color={colors.muted} />
         </TouchableOpacity>
       </View>
 
@@ -96,7 +107,7 @@ export default function VoiceDumpScreen({ navigation, route }) {
             <Text style={s.headline}>Talk freely.</Text>
             <Text style={s.sub}>Plans, tasks, reminders — anything. Nudge figures the rest out.</Text>
             <TouchableOpacity style={s.micBtn} onPress={startRecording}>
-              <Feather name="mic" size={32} color="#fff" />
+              <Microphone size={32} color="#fff" weight="fill" />
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setUseText(true)}>
               <Text style={s.textLink}>Type instead</Text>
@@ -110,7 +121,7 @@ export default function VoiceDumpScreen({ navigation, route }) {
             <Text style={s.headline}>Listening...</Text>
             <Text style={[s.sub, { fontVariant: ['tabular-nums'] }]}>{fmt(elapsed)}</Text>
             <TouchableOpacity style={[s.micBtn, { backgroundColor: colors.missed }]} onPress={stopRecording}>
-              <Feather name="mic-off" size={32} color="#fff" />
+              <MicrophoneSlash size={32} color="#fff" weight="fill" />
             </TouchableOpacity>
             <Text style={s.textLink}>Tap to stop & process</Text>
           </View>
@@ -129,7 +140,7 @@ export default function VoiceDumpScreen({ navigation, route }) {
         {state === S.DONE && result && (
           <View style={{ gap: 12 }}>
             <View style={s.doneRow}>
-              <View style={s.doneCheck}><Feather name="check" size={12} color={colors.done} /></View>
+              <View style={s.doneCheck}><Check size={12} color={colors.done} /></View>
               <Text style={s.doneText}>
                 Got it — {result.items?.filter(i => i.type !== 'context' && i.type !== 'habit').length} nudge(s)
                 {result.storedHabits?.length > 0 ? `, ${result.storedHabits.length} habit(s)` : ''} created.
@@ -159,7 +170,7 @@ export default function VoiceDumpScreen({ navigation, route }) {
           </View>
         )}
 
-        {/* TEXT / ERROR */}
+        {/* TEXT INPUT / ERROR fallback */}
         {(state === S.ERROR || useText) && state !== S.PROCESSING && state !== S.DONE && (
           <View style={{ gap: 12 }}>
             {error ? <Text style={s.errorText}>{error}</Text> : null}

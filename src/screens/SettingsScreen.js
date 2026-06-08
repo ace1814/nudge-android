@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native'
-import { Feather } from '@expo/vector-icons'
+import { Shield, Database, Sliders, Lightning, CheckCircle, Eye, EyeSlash, WifiHigh, WifiX, CircleNotch } from 'phosphor-react-native'
 import { colors, font } from '../theme'
 import { storage } from '../services/storage'
 import { resetSupabase, getSupabase } from '../services/supabase'
@@ -69,10 +69,10 @@ export default function SettingsScreen() {
       <Text style={s.pageTitle}>Settings</Text>
 
       {/* OpenAI */}
-      <Section title="OpenAI" icon="shield">
+      <Section title="OpenAI" Icon={Shield}>
         {keySet && (
           <View style={s.keySet}>
-            <Feather name="check-circle" size={13} color={colors.done} />
+            <CheckCircle size={13} color={colors.done} weight="fill" />
             <Text style={s.keySetText}>Key stored securely</Text>
           </View>
         )}
@@ -83,14 +83,14 @@ export default function SettingsScreen() {
             placeholderTextColor={colors.muted}
             secureTextEntry={!showKey} autoCapitalize="none" autoCorrect={false} />
           <TouchableOpacity onPress={() => setShowKey(!showKey)} style={s.eyeBtn}>
-            <Feather name={showKey ? 'eye-off' : 'eye'} size={16} color={colors.muted} />
+            {showKey ? <EyeSlash size={16} color={colors.muted} /> : <Eye size={16} color={colors.muted} />}
           </TouchableOpacity>
         </View>
         <Text style={s.hint}>Stored in device secure storage. Never sent to our servers.</Text>
       </Section>
 
       {/* Supabase */}
-      <Section title="Supabase" icon="database">
+      <Section title="Supabase" Icon={Database}>
         <TextInput style={s.input} value={supaUrl} onChangeText={setSupaUrl}
           placeholder="https://xxxx.supabase.co" placeholderTextColor={colors.muted}
           autoCapitalize="none" autoCorrect={false} keyboardType="url" />
@@ -100,13 +100,15 @@ export default function SettingsScreen() {
         <Text style={s.hint}>Use the service_role key, not anon.</Text>
 
         <TouchableOpacity style={s.testBtn} onPress={testConnection} disabled={testing}>
-          <Feather name={testing ? 'loader' : 'wifi'} size={13} color={colors.muted} />
+          {testing ? <CircleNotch size={13} color={colors.muted} /> : <WifiHigh size={13} color={colors.muted} />}
           <Text style={s.testBtnText}>{testing ? 'Testing...' : 'Test connection'}</Text>
         </TouchableOpacity>
 
         {dbStatus && (
           <View style={[s.dbResult, dbStatus.ok ? s.dbOk : s.dbErr]}>
-            <Feather name={dbStatus.ok ? 'check-circle' : 'wifi-off'} size={13} color={dbStatus.ok ? colors.done : colors.missed} />
+            {dbStatus.ok
+              ? <CheckCircle size={13} color={colors.done} weight="fill" />
+              : <WifiX size={13} color={colors.missed} />}
             <Text style={[s.dbResultText, { color: dbStatus.ok ? colors.done : colors.missed }]}>
               {dbStatus.ok ? 'All tables found. Connected.' : dbStatus.error}
             </Text>
@@ -115,7 +117,7 @@ export default function SettingsScreen() {
       </Section>
 
       {/* Nudge tone */}
-      <Section title="Nudge Tone" icon="sliders">
+      <Section title="Nudge Tone" Icon={Sliders}>
         {TONES.map(t => (
           <TouchableOpacity key={t.id} style={[s.toneRow, tone === t.id && s.toneRowActive]}
             onPress={() => setTone(t.id)}>
@@ -129,13 +131,14 @@ export default function SettingsScreen() {
       </Section>
 
       {/* Power button instructions */}
-      <Section title="Samsung Side Key" icon="zap">
+      <Section title="Samsung Side Key" Icon={Lightning}>
         <View style={s.infoBox}>
-          <Text style={s.infoText}>To launch Nudge instantly with your power button:</Text>
+          <Text style={s.infoText}>Launch Nudge with a single button press:</Text>
           <Text style={s.infoStep}>1. Open Samsung Settings</Text>
           <Text style={s.infoStep}>2. Advanced features → Side key</Text>
-          <Text style={s.infoStep}>3. Double press → Open app → Select Nudge</Text>
-          <Text style={s.infoStep}>4. Double-press your power button anywhere to start recording!</Text>
+          <Text style={s.infoStep}>3. Press → Open app → Select Nudge</Text>
+          <Text style={s.infoStep}>   (or Double press if you use Press for something else)</Text>
+          <Text style={s.infoStep}>4. Press your Side key once — Nudge opens and recording starts immediately!</Text>
         </View>
       </Section>
 
@@ -146,11 +149,11 @@ export default function SettingsScreen() {
   )
 }
 
-function Section({ title, icon, children }) {
+function Section({ title, Icon, children }) {
   return (
     <View style={s.section}>
       <View style={s.sectionHeader}>
-        {icon && <Feather name={icon} size={12} color={colors.muted} />}
+        {Icon && <Icon size={12} color={colors.muted} />}
         <Text style={s.sectionTitle}>{title}</Text>
       </View>
       {children}

@@ -1,10 +1,11 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { StatusBar, TouchableOpacity, View, StyleSheet } from 'react-native'
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { createStackNavigator } from '@react-navigation/stack'
-import { Feather } from '@expo/vector-icons'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
+import * as Notifications from 'expo-notifications'
+import { House, Bell, ArrowsClockwise, GearSix, Microphone } from 'phosphor-react-native'
 
 import HomeScreen      from './src/screens/HomeScreen'
 import NudgesScreen    from './src/screens/NudgesScreen'
@@ -12,6 +13,15 @@ import HabitsScreen    from './src/screens/HabitsScreen'
 import SettingsScreen  from './src/screens/SettingsScreen'
 import VoiceDumpScreen from './src/screens/VoiceDumpScreen'
 import { colors }      from './src/theme'
+
+// Show notifications even when app is foregrounded
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+})
 
 const Tab   = createBottomTabNavigator()
 const Stack = createStackNavigator()
@@ -21,13 +31,18 @@ const navTheme = {
   colors: { ...DefaultTheme.colors, background: colors.bg, card: colors.card, border: colors.border, text: colors.foreground, primary: colors.primary }
 }
 
-const TAB_ICONS = { Today: 'home', Nudges: 'bell', Habits: 'repeat', Settings: 'settings' }
+const TAB_ICONS = {
+  Today:    House,
+  Nudges:   Bell,
+  Habits:   ArrowsClockwise,
+  Settings: GearSix,
+}
 
 function MicTabButton({ onPress }) {
   return (
     <TouchableOpacity onPress={onPress} style={tabStyles.micWrapper} activeOpacity={0.85}>
       <View style={tabStyles.micBtn}>
-        <Feather name="mic" size={24} color="#fff" />
+        <Microphone size={24} color="#fff" weight="fill" />
       </View>
     </TouchableOpacity>
   )
@@ -46,7 +61,10 @@ function Tabs({ navigation }) {
         tabBarActiveTintColor:   colors.primary,
         tabBarInactiveTintColor: colors.muted,
         tabBarLabelStyle:      { fontSize: 10, fontWeight: '600' },
-        tabBarIcon:            ({ color, size }) => <Feather name={TAB_ICONS[route.name]} size={size - 2} color={color} />,
+        tabBarIcon:            ({ color, size }) => {
+          const Icon = TAB_ICONS[route.name]
+          return Icon ? <Icon size={size - 2} color={color} /> : null
+        },
         headerStyle:           { backgroundColor: colors.bg, shadowOpacity: 0, elevation: 0 },
         headerTintColor:       colors.foreground,
       })}>
@@ -56,7 +74,7 @@ function Tabs({ navigation }) {
         options={{
           tabBarLabel: () => null,
           tabBarIcon:  () => null,
-          tabBarButton: (props) => <MicTabButton onPress={() => navigation.navigate('VoiceDump')} />,
+          tabBarButton: () => <MicTabButton onPress={() => navigation.navigate('VoiceDump')} />,
           headerShown: false,
         }} />
       <Tab.Screen name="Habits"   component={HabitsScreen}  options={{ headerShown: false }} />
@@ -65,14 +83,19 @@ function Tabs({ navigation }) {
   )
 }
 
-// Deep-link config — nudge://voice opens VoiceDump directly
-// Samsung Side Key: Settings > Advanced features > Side key > Double press > Open app > Nudge
+// Deep-link config — nudge://voice opens VoiceDump directly (recording auto-starts)
+// Samsung Side Key: Settings > Advanced features > Side key > Press OR Double press > Open app > Nudge
 const linking = {
   prefixes: ['nudge://'],
   config: { screens: { Main: '', VoiceDump: 'voice' } }
 }
 
 export default function App() {
+  // Request notification permission on first launch
+  useEffect(() => {
+    Notifications.requestPermissionsAsync().catch(() => {})
+  }, [])
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar barStyle="light-content" backgroundColor={colors.bg} />

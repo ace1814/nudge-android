@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native'
-import { Feather } from '@expo/vector-icons'
+import { CaretUp, CaretDown, Check, Clock, X, Trash } from 'phosphor-react-native'
 import dayjs from 'dayjs'
 import { colors, font } from '../theme'
 
@@ -29,7 +29,7 @@ export default function NudgeCard({ nudge, onComplete, onSnooze, onDismiss, onDe
             </View>
           </View>
         </View>
-        <Feather name={expanded ? 'chevron-up' : 'chevron-down'} size={14} color={colors.muted} />
+        {expanded ? <CaretUp size={14} color={colors.muted} /> : <CaretDown size={14} color={colors.muted} />}
       </View>
 
       {expanded && (
@@ -40,25 +40,25 @@ export default function NudgeCard({ nudge, onComplete, onSnooze, onDismiss, onDe
           <View style={s.actions}>
             {onComplete && (
               <TouchableOpacity style={[s.actionBtn, s.doneBtn]} onPress={onComplete}>
-                <Feather name="check" size={13} color="#fff" />
+                <Check size={13} color="#fff" weight="bold" />
                 <Text style={s.actionBtnText}>Done</Text>
               </TouchableOpacity>
             )}
             {onSnooze && (
               <TouchableOpacity style={s.actionBtn} onPress={onSnooze}>
-                <Feather name="clock" size={13} color={colors.foreground} />
+                <Clock size={13} color={colors.foreground} />
                 <Text style={[s.actionBtnText, { color: colors.foreground }]}>Snooze 1h</Text>
               </TouchableOpacity>
             )}
             {onDismiss && (
               <TouchableOpacity style={s.actionBtn} onPress={onDismiss}>
-                <Feather name="x" size={13} color={colors.muted} />
+                <X size={13} color={colors.muted} />
                 <Text style={[s.actionBtnText, { color: colors.muted }]}>Dismiss</Text>
               </TouchableOpacity>
             )}
             {onDelete && (
               <TouchableOpacity style={[s.actionBtn, { marginLeft: 'auto' }]} onPress={onDelete}>
-                <Feather name="trash-2" size={13} color={colors.missed} />
+                <Trash size={13} color={colors.missed} />
               </TouchableOpacity>
             )}
           </View>
