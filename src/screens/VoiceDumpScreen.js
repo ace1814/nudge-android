@@ -160,11 +160,11 @@ export default function VoiceDumpScreen({ visible, onClose, textMode = false }) 
       onRequestClose={forceClose}>
 
       <View style={s.backdrop}>
-        {/* Dim area — only dismiss when safe (not recording/processing) */}
+        {/* Dim area — always consume the tap, only dismiss when safe */}
         <TouchableOpacity
           style={StyleSheet.absoluteFill}
           activeOpacity={1}
-          onPress={isSafeToClose ? handleClose : undefined}
+          onPress={() => { if (isSafeToClose) handleClose() }}
         />
 
         {/* Sheet */}
