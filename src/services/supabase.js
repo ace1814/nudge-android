@@ -47,9 +47,21 @@ export async function getTodayNudges() {
   if (!db) return []
   const today = new Date().toISOString().split('T')[0]
   const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0]
-  const { data, error } = await db.from('nudges').select('*').gte('scheduled_for', today).lt('scheduled_for', tomorrow).order('scheduled_for')
-  if (error) throw error
-  return data || []
+
+  const { data: todayData, error: e1 } = await db.from('nudges').select('*')
+    .gte('scheduled_for', today).lt('scheduled_for', tomorrow).order('scheduled_for')
+  if (e1) throw e1
+
+  const { data: overdueData, error: e2 } = await db.from('nudges').select('*')
+    .lt('scheduled_for', today).in('status', ['pending', 'fired', 'snoozed']).order('scheduled_for')
+  if (e2) throw e2
+
+  const seen = new Set()
+  return [...(overdueData || []), ...(todayData || [])].filter(n => {
+    if (seen.has(n.id)) return false
+    seen.add(n.id)
+    return true
+  })
 }
 
 export async function insertNudges(nudges) {
