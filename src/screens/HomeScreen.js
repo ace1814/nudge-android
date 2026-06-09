@@ -1,55 +1,56 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native'
-import { Microphone, Check, PencilSimple, FunnelSimple, X } from 'phosphor-react-native'
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native'
+import { Microphone, Check, PencilSimple } from 'phosphor-react-native'
 import dayjs from 'dayjs'
 import { colors, font } from '../theme'
-import { getTodayEntry, getTodayNudges, getActiveHabits, completeNudge, snoozeNudge, deleteNudge, getNudgesByCreatedDate, getNudgesByCompletedDate } from '../services/supabase'
+import { getUpcomingNudges, getActiveHabits, completeNudge, snoozeNudge, deleteNudge } from '../services/supabase'
 import NudgeCard from '../components/NudgeCard'
 import EditNudgeSheet from '../components/EditNudgeSheet'
 import { useRecorder } from '../hooks/useRecorder'
 
+const TIME_FILTERS = [
+  { id: 'today',    label: 'Today' },
+  { id: 'tomorrow', label: 'Tomorrow' },
+  { id: 'week',     label: 'This week' },
+]
+
 export default function HomeScreen() {
   const { openVoice, openText } = useRecorder()
-  const [entry, setEntry]     = useState(null)
   const [nudges, setNudges]   = useState([])
   const [habits, setHabits]   = useState([])
   const [doneHabits, setDoneHabits] = useState(new Set())
   const [refreshing, setRefreshing] = useState(false)
   const [editingNudge, setEditingNudge] = useState(null)
-  const [filterType, setFilterType] = useState(null)   // null | 'created' | 'completed'
-  const [filterDate, setFilterDate] = useState('')
-  const [filteredNudges, setFilteredNudges] = useState(null)
+  const [timeFilter, setTimeFilter] = useState('today')
 
   const load = useCallback(async () => {
     try {
-      const [e, n, h] = await Promise.all([getTodayEntry(), getTodayNudges(), getActiveHabits()])
-      setEntry(e); setNudges(n || []); setHabits(h || [])
+      const [n, h] = await Promise.all([getUpcomingNudges(), getActiveHabits()])
+      setNudges(n || []); setHabits(h || [])
     } catch (err) { console.warn(err.message) }
   }, [])
 
   useEffect(() => { load() }, [load])
 
-  useEffect(() => {
-    if (!filterType || !filterDate) { setFilteredNudges(null); return }
-    const fetch = async () => {
-      try {
-        const results = filterType === 'created'
-          ? await getNudgesByCreatedDate(filterDate)
-          : await getNudgesByCompletedDate(filterDate)
-        setFilteredNudges(results || [])
-      } catch (e) { setFilteredNudges([]) }
-    }
-    fetch()
-  }, [filterType, filterDate])
-
-  const clearFilter = () => { setFilterType(null); setFilterDate(''); setFilteredNudges(null) }
-
   const onRefresh = async () => { setRefreshing(true); await load(); setRefreshing(false) }
 
-  const upcoming = nudges.filter(n => n.status === 'pending' || n.status === 'fired')
-    .sort((a, b) => new Date(a.scheduled_for) - new Date(b.scheduled_for))
-  const missed = nudges.filter(n => n.status === 'missed')
-  const done   = nudges.filter(n => n.status === 'done')
+  // Client-side time filtering
+  const todayStr    = dayjs().format('YYYY-MM-DD')
+  const tomorrowStr = dayjs().add(1, 'day').format('YYYY-MM-DD')
+  const weekEndStr  = dayjs().add(7, 'day').format('YYYY-MM-DD')
+
+  const isOverdue = n => n.scheduled_for < todayStr && ['pending', 'fired', 'snoozed'].includes(n.status)
+
+  const visibleNudges = nudges.filter(n => {
+    if (timeFilter === 'today')    return n.scheduled_for.startsWith(todayStr) || isOverdue(n)
+    if (timeFilter === 'tomorrow') return n.scheduled_for.startsWith(tomorrowStr)
+    if (timeFilter === 'week')     return n.scheduled_for >= todayStr && n.scheduled_for < weekEndStr
+    return true
+  })
+
+  const upcoming = visibleNudges.filter(n => n.status === 'pending' || n.status === 'fired' || n.status === 'snoozed')
+  const missed   = timeFilter === 'today' ? visibleNudges.filter(n => n.status === 'missed') : []
+  const done     = visibleNudges.filter(n => n.status === 'done')
 
   const toggleHabit = (id) => setDoneHabits(prev => {
     const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next
@@ -61,6 +62,8 @@ export default function HomeScreen() {
     if (h < 17) return 'Good afternoon.'
     return 'Good evening.'
   }
+
+  const sectionTitle = timeFilter === 'today' ? 'Up next' : timeFilter === 'tomorrow' ? 'Tomorrow' : 'This week'
 
   return (
     <ScrollView style={s.root} contentContainerStyle={s.content}
@@ -79,39 +82,15 @@ export default function HomeScreen() {
         )}
       </View>
 
-      {/* Filter bar */}
-      <View style={s.filterBar}>
-        <FunnelSimple size={11} color={colors.muted} />
-        <TouchableOpacity
-          style={[s.filterChip, filterType === 'created' && s.filterChipActive]}
-          onPress={() => setFilterType(t => t === 'created' ? null : 'created')}
-        >
-          <Text style={[s.filterChipText, filterType === 'created' && { color: colors.primary }]}>Created on</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[s.filterChip, filterType === 'completed' && s.filterChipActive]}
-          onPress={() => setFilterType(t => t === 'completed' ? null : 'completed')}
-        >
-          <Text style={[s.filterChipText, filterType === 'completed' && { color: colors.primary }]}>Completed on</Text>
-        </TouchableOpacity>
-        {filterType && (
-          <View style={s.filterDateRow}>
-            <TextInput
-              style={s.filterDateInput}
-              value={filterDate}
-              onChangeText={setFilterDate}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={colors.muted}
-              keyboardType="numeric"
-            />
-            {filterDate ? (
-              <TouchableOpacity onPress={clearFilter} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <X size={11} color={colors.muted} />
-              </TouchableOpacity>
-            ) : null}
-          </View>
-        )}
-      </View>
+      {/* Time filter pills */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.pillsScroll} contentContainerStyle={s.pills}>
+        {TIME_FILTERS.map(f => (
+          <TouchableOpacity key={f.id} onPress={() => setTimeFilter(f.id)}
+            style={[s.pill, timeFilter === f.id && s.pillActive]}>
+            <Text style={[s.pillText, timeFilter === f.id && s.pillTextActive]}>{f.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
 
       {/* Quick entry row */}
       <View style={s.quickRow}>
@@ -125,8 +104,8 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Habits */}
-      {habits.length > 0 && (
+      {/* Habits (today only) */}
+      {timeFilter === 'today' && habits.length > 0 && (
         <Section title="Habits">
           {habits.map(h => (
             <TouchableOpacity key={h.id} style={[s.habitRow, doneHabits.has(h.id) && s.habitDone]}
@@ -143,24 +122,9 @@ export default function HomeScreen() {
         </Section>
       )}
 
-      {/* Filtered results */}
-      {filteredNudges !== null && (
-        <Section title={`${filterType === 'created' ? 'Created' : 'Completed'} on ${filterDate}`}>
-          {filteredNudges.length === 0
-            ? <Text style={{ fontSize: font.xs, color: colors.muted, paddingVertical: 8 }}>No nudges found for this date.</Text>
-            : filteredNudges.map(n => (
-                <NudgeCard key={n.id} nudge={n}
-                  onComplete={async () => { await completeNudge(n.id); load() }}
-                  onDelete={async () => { await deleteNudge(n.id); load() }}
-                  onEdit={() => setEditingNudge(n)} />
-              ))
-          }
-        </Section>
-      )}
-
-      {/* Upcoming nudges (hidden when filter is active) */}
-      {filteredNudges === null && upcoming.length > 0 && (
-        <Section title="Up next">
+      {/* Upcoming nudges */}
+      {upcoming.length > 0 && (
+        <Section title={sectionTitle}>
           {upcoming.map(n => (
             <NudgeCard key={n.id} nudge={n}
               onComplete={async () => { await completeNudge(n.id); load() }}
@@ -171,8 +135,8 @@ export default function HomeScreen() {
         </Section>
       )}
 
-      {/* Missed */}
-      {filteredNudges === null && missed.length > 0 && (
+      {/* Missed (today only) */}
+      {timeFilter === 'today' && missed.length > 0 && (
         <Section title="Missed today">
           {missed.map(n => (
             <NudgeCard key={n.id} nudge={n}
@@ -181,9 +145,12 @@ export default function HomeScreen() {
         </Section>
       )}
 
-      {filteredNudges === null && nudges.length === 0 && habits.length === 0 && (
+      {upcoming.length === 0 && missed.length === 0 && habits.length === 0 && (
         <View style={s.empty}>
-          <Text style={s.emptyText}>Nothing scheduled yet.{'\n'}Tap Voice or Type to add tasks.</Text>
+          <Text style={s.emptyText}>
+            Nothing for {TIME_FILTERS.find(f => f.id === timeFilter)?.label.toLowerCase()}.
+            {'\n'}Tap Voice or Type to add tasks.
+          </Text>
         </View>
       )}
 
@@ -222,12 +189,12 @@ const s = StyleSheet.create({
   date:               { fontSize: font.xs, color: colors.muted, fontWeight: '600', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 },
   greeting:           { fontSize: font.xl, fontWeight: '700', color: colors.foreground },
   stats:              { flexDirection: 'row', marginTop: 10 },
-  filterBar:          { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 10 },
-  filterChip:         { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: colors.border },
-  filterChipActive:   { borderColor: colors.primary, backgroundColor: colors.primary + '18' },
-  filterChipText:     { fontSize: 10, fontWeight: '600', color: colors.muted },
-  filterDateRow:      { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 },
-  filterDateInput:    { flex: 1, fontSize: 10, color: colors.foreground, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
+  pillsScroll:        { flexGrow: 0, marginBottom: 12, marginHorizontal: -16 },
+  pills:              { paddingHorizontal: 16, gap: 6, flexDirection: 'row' },
+  pill:               { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: colors.border },
+  pillActive:         { backgroundColor: colors.primary, borderColor: colors.primary },
+  pillText:           { fontSize: font.xs, color: colors.muted, fontWeight: '600' },
+  pillTextActive:     { color: '#fff' },
   quickRow:           { flexDirection: 'row', gap: 8, marginBottom: 4 },
   quickBtn:           { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 12, paddingVertical: 11 },
   quickBtnPrimary:    { backgroundColor: colors.primary },

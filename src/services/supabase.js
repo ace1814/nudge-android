@@ -79,6 +79,26 @@ export async function updateNudgeStatus(id, status, extra = {}) {
   if (error) throw error
 }
 
+export async function getUpcomingNudges() {
+  const db = await getSupabase()
+  if (!db) return []
+  const today    = new Date().toISOString().split('T')[0]
+  const nextWeek = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]
+
+  const { data: upcoming, error: e1 } = await db.from('nudges').select('*')
+    .gte('scheduled_for', today).lt('scheduled_for', nextWeek).order('scheduled_for')
+  if (e1) throw e1
+
+  const { data: overdue, error: e2 } = await db.from('nudges').select('*')
+    .lt('scheduled_for', today).in('status', ['pending', 'fired', 'snoozed']).order('scheduled_for')
+  if (e2) throw e2
+
+  const seen = new Set()
+  return [...(overdue || []), ...(upcoming || [])].filter(n => {
+    if (seen.has(n.id)) return false; seen.add(n.id); return true
+  })
+}
+
 export async function getNudgesByCreatedDate(date) {
   const db = await getSupabase()
   if (!db) return []
