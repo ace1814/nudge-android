@@ -79,6 +79,28 @@ export async function updateNudgeStatus(id, status, extra = {}) {
   if (error) throw error
 }
 
+export async function getNudgesByCreatedDate(date) {
+  const db = await getSupabase()
+  if (!db) return []
+  const start = new Date(`${date}T00:00:00`).toISOString()
+  const end   = new Date(`${date}T23:59:59.999`).toISOString()
+  const { data, error } = await db.from('nudges').select('*')
+    .gte('created_at', start).lte('created_at', end).order('created_at')
+  if (error) throw error
+  return data || []
+}
+
+export async function getNudgesByCompletedDate(date) {
+  const db = await getSupabase()
+  if (!db) return []
+  const start = new Date(`${date}T00:00:00`).toISOString()
+  const end   = new Date(`${date}T23:59:59.999`).toISOString()
+  const { data, error } = await db.from('nudges').select('*')
+    .gte('completed_at', start).lte('completed_at', end).eq('status', 'done').order('completed_at')
+  if (error) throw error
+  return data || []
+}
+
 export async function updateNudge(id, fields) {
   const db = await getSupabase()
   if (!db) throw new Error('Supabase not configured')

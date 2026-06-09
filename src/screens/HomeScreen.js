@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native'
-import { Microphone, Check, PencilSimple } from 'phosphor-react-native'
+import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native'
+import { Microphone, Check, PencilSimple, FunnelSimple, X } from 'phosphor-react-native'
 import dayjs from 'dayjs'
 import { colors, font } from '../theme'
-import { getTodayEntry, getTodayNudges, getActiveHabits, completeNudge, snoozeNudge, deleteNudge } from '../services/supabase'
+import { getTodayEntry, getTodayNudges, getActiveHabits, completeNudge, snoozeNudge, deleteNudge, getNudgesByCreatedDate, getNudgesByCompletedDate } from '../services/supabase'
 import NudgeCard from '../components/NudgeCard'
 import EditNudgeSheet from '../components/EditNudgeSheet'
 import { useRecorder } from '../hooks/useRecorder'
@@ -16,6 +16,9 @@ export default function HomeScreen() {
   const [doneHabits, setDoneHabits] = useState(new Set())
   const [refreshing, setRefreshing] = useState(false)
   const [editingNudge, setEditingNudge] = useState(null)
+  const [filterType, setFilterType] = useState(null)   // null | 'created' | 'completed'
+  const [filterDate, setFilterDate] = useState('')
+  const [filteredNudges, setFilteredNudges] = useState(null)
 
   const load = useCallback(async () => {
     try {
@@ -25,6 +28,21 @@ export default function HomeScreen() {
   }, [])
 
   useEffect(() => { load() }, [load])
+
+  useEffect(() => {
+    if (!filterType || !filterDate) { setFilteredNudges(null); return }
+    const fetch = async () => {
+      try {
+        const results = filterType === 'created'
+          ? await getNudgesByCreatedDate(filterDate)
+          : await getNudgesByCompletedDate(filterDate)
+        setFilteredNudges(results || [])
+      } catch (e) { setFilteredNudges([]) }
+    }
+    fetch()
+  }, [filterType, filterDate])
+
+  const clearFilter = () => { setFilterType(null); setFilterDate(''); setFilteredNudges(null) }
 
   const onRefresh = async () => { setRefreshing(true); await load(); setRefreshing(false) }
 
@@ -61,6 +79,40 @@ export default function HomeScreen() {
         )}
       </View>
 
+      {/* Filter bar */}
+      <View style={s.filterBar}>
+        <FunnelSimple size={11} color={colors.muted} />
+        <TouchableOpacity
+          style={[s.filterChip, filterType === 'created' && s.filterChipActive]}
+          onPress={() => setFilterType(t => t === 'created' ? null : 'created')}
+        >
+          <Text style={[s.filterChipText, filterType === 'created' && { color: colors.primary }]}>Created on</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[s.filterChip, filterType === 'completed' && s.filterChipActive]}
+          onPress={() => setFilterType(t => t === 'completed' ? null : 'completed')}
+        >
+          <Text style={[s.filterChipText, filterType === 'completed' && { color: colors.primary }]}>Completed on</Text>
+        </TouchableOpacity>
+        {filterType && (
+          <View style={s.filterDateRow}>
+            <TextInput
+              style={s.filterDateInput}
+              value={filterDate}
+              onChangeText={setFilterDate}
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor={colors.muted}
+              keyboardType="numeric"
+            />
+            {filterDate ? (
+              <TouchableOpacity onPress={clearFilter} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <X size={11} color={colors.muted} />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        )}
+      </View>
+
       {/* Quick entry row */}
       <View style={s.quickRow}>
         <TouchableOpacity style={[s.quickBtn, s.quickBtnPrimary]} onPress={openVoice}>
@@ -91,8 +143,23 @@ export default function HomeScreen() {
         </Section>
       )}
 
-      {/* Upcoming nudges */}
-      {upcoming.length > 0 && (
+      {/* Filtered results */}
+      {filteredNudges !== null && (
+        <Section title={`${filterType === 'created' ? 'Created' : 'Completed'} on ${filterDate}`}>
+          {filteredNudges.length === 0
+            ? <Text style={{ fontSize: font.xs, color: colors.muted, paddingVertical: 8 }}>No nudges found for this date.</Text>
+            : filteredNudges.map(n => (
+                <NudgeCard key={n.id} nudge={n}
+                  onComplete={async () => { await completeNudge(n.id); load() }}
+                  onDelete={async () => { await deleteNudge(n.id); load() }}
+                  onEdit={() => setEditingNudge(n)} />
+              ))
+          }
+        </Section>
+      )}
+
+      {/* Upcoming nudges (hidden when filter is active) */}
+      {filteredNudges === null && upcoming.length > 0 && (
         <Section title="Up next">
           {upcoming.map(n => (
             <NudgeCard key={n.id} nudge={n}
@@ -105,7 +172,7 @@ export default function HomeScreen() {
       )}
 
       {/* Missed */}
-      {missed.length > 0 && (
+      {filteredNudges === null && missed.length > 0 && (
         <Section title="Missed today">
           {missed.map(n => (
             <NudgeCard key={n.id} nudge={n}
@@ -114,7 +181,7 @@ export default function HomeScreen() {
         </Section>
       )}
 
-      {nudges.length === 0 && habits.length === 0 && (
+      {filteredNudges === null && nudges.length === 0 && habits.length === 0 && (
         <View style={s.empty}>
           <Text style={s.emptyText}>Nothing scheduled yet.{'\n'}Tap Voice or Type to add tasks.</Text>
         </View>
@@ -155,6 +222,12 @@ const s = StyleSheet.create({
   date:               { fontSize: font.xs, color: colors.muted, fontWeight: '600', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 },
   greeting:           { fontSize: font.xl, fontWeight: '700', color: colors.foreground },
   stats:              { flexDirection: 'row', marginTop: 10 },
+  filterBar:          { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 10 },
+  filterChip:         { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: colors.border },
+  filterChipActive:   { borderColor: colors.primary, backgroundColor: colors.primary + '18' },
+  filterChipText:     { fontSize: 10, fontWeight: '600', color: colors.muted },
+  filterDateRow:      { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 },
+  filterDateInput:    { flex: 1, fontSize: 10, color: colors.foreground, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
   quickRow:           { flexDirection: 'row', gap: 8, marginBottom: 4 },
   quickBtn:           { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 12, paddingVertical: 11 },
   quickBtnPrimary:    { backgroundColor: colors.primary },
