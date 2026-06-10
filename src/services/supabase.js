@@ -49,11 +49,11 @@ export async function getTodayNudges() {
   const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0]
 
   const { data: todayData, error: e1 } = await db.from('nudges').select('*')
-    .gte('scheduled_for', today).lt('scheduled_for', tomorrow).order('scheduled_for')
+    .gte('scheduled_for', today).lt('scheduled_for', tomorrow).order('created_at', { ascending: false })
   if (e1) throw e1
 
   const { data: overdueData, error: e2 } = await db.from('nudges').select('*')
-    .lt('scheduled_for', today).in('status', ['pending', 'fired', 'snoozed']).order('scheduled_for')
+    .lt('scheduled_for', today).in('status', ['pending', 'fired', 'snoozed']).order('created_at', { ascending: false })
   if (e2) throw e2
 
   const seen = new Set()
@@ -86,11 +86,11 @@ export async function getUpcomingNudges() {
   const nextWeek = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]
 
   const { data: upcoming, error: e1 } = await db.from('nudges').select('*')
-    .gte('scheduled_for', today).lt('scheduled_for', nextWeek).order('scheduled_for')
+    .gte('scheduled_for', today).lt('scheduled_for', nextWeek).order('created_at', { ascending: false })
   if (e1) throw e1
 
   const { data: overdue, error: e2 } = await db.from('nudges').select('*')
-    .lt('scheduled_for', today).in('status', ['pending', 'fired', 'snoozed']).order('scheduled_for')
+    .lt('scheduled_for', today).in('status', ['pending', 'fired', 'snoozed']).order('created_at', { ascending: false })
   if (e2) throw e2
 
   const seen = new Set()
